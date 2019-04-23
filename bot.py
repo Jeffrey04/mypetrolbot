@@ -9,6 +9,12 @@ import lxml.html
 import os
 import dateparser
 
+logging.basicConfig(
+    level=logging.INFO & logging.DEBUG & logging.ERROR,
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S')
+
+
 
 def start(bot, update):
     bot.send_message(
@@ -53,13 +59,13 @@ def price_handler(bot, update):
               CSSSelector('div.starter-template > p.lead b i')(
                   lxml.html.fromstring(response.text)))
 
-    for block in CSSSelector('.col-xs-12')(
-            lxml.html.fromstring(response.text)):
+    for block in CSSSelector('div[itemprop=priceComponent]')(
+            lxml.html.fromstring(response.text))[:3]:
         bot.send_message(
             chat_id=update.message.chat_id,
             text='Price of {} is RM {} per litre ({} from last week)'.format(
                 CSSSelector('div')(block)[1].text.strip(),
-                CSSSelector('div')(block)[2].text.strip(),
+                CSSSelector('span[itemprop=price]')(block)[0].text.strip(),
                 CSSSelector('div')(block)[3].text.replace(' ', '')))
 
 
@@ -72,17 +78,31 @@ def price(bot, update):
         price_handler(bot, update)
 
 
-logging.basicConfig(
-    level=logging.INFO & logging.DEBUG & logging.ERROR,
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger(__name__)
+def main():
+    logger = logging.getLogger(__name__)
 
-updater = Updater(token=os.environ.get('BOT_TOKEN', 'TOKEN'), request_kwargs={'read_timeout': 6, 'connect_timeout': 7})
-dispatcher = updater.dispatcher
+    updater = Updater(token=os.environ.get('BOT_TOKEN', 'TOKEN'), request_kwargs={'read_timeout': 6, 'connect_timeout': 7})
+    dispatcher = updater.dispatcher
 
-dispatcher.add_handler(CommandHandler('start', start))
-dispatcher.add_handler(CommandHandler('price', price_handler, pass_args=False))
-dispatcher.add_handler(MessageHandler(Filters.text, price))
+    dispatcher.add_handler(CommandHandler('start', start))
+    dispatcher.add_handler(CommandHandler('price', price_handler, pass_args=False))
+    dispatcher.add_handler(MessageHandler(Filters.text, price))
 
-updater.start_polling()
+    updater.start_polling()
+
+class MockBot(object):
+    def send_message(self, **kwargs):
+        logging.debug(kwargs['text'])
+
+class MockMessage(object):
+    chat_id = None
+
+class MockUpdate(object):
+    message = MockMessage()
+
+
+if __name__ == '__main__':
+    if os.environ.get('BOT_TOKEN', False):
+        main()
+    else:
+        price_handler(MockBot(), MockUpdate())
