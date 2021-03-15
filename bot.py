@@ -14,6 +14,7 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S')
 
+logger = logging.getLogger(__name__)
 
 
 def start(bot, update):
@@ -71,6 +72,7 @@ def price_handler(bot, update):
 
 def price(bot, update):
     logger.info(update.message.text.upper())
+
     if ((getattr(update, 'from_user', None)
          and 'price' in update.message.text.lower())
             or ('price' in update.message.text.lower()
@@ -79,8 +81,6 @@ def price(bot, update):
 
 
 def main():
-    logger = logging.getLogger(__name__)
-
     updater = Updater(token=os.environ.get('BOT_TOKEN', 'TOKEN'), request_kwargs={'read_timeout': 6, 'connect_timeout': 7})
     dispatcher = updater.dispatcher
 
@@ -88,11 +88,11 @@ def main():
     dispatcher.add_handler(CommandHandler('price', price_handler, pass_args=False))
     dispatcher.add_handler(MessageHandler(Filters.text, price))
 
-    updater.start_polling()
+    updater.start_webhook(listen='0.0.0.0', url_path=os.environ.get('URL_PATH', '/'))
 
 class MockBot(object):
     def send_message(self, **kwargs):
-        logging.debug(kwargs['text'])
+        logger.debug(kwargs['text'])
 
 class MockMessage(object):
     chat_id = None
