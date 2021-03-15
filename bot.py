@@ -17,8 +17,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def start(bot, update):
-    bot.send_message(
+def start(update, context):
+    context.bot.send_message(
         chat_id=update.message.chat_id,
         text=
         "The upstream usually updates the price after 6PM every Wednesday. Issue /price command to fetch the latest price."
@@ -41,8 +41,8 @@ def send_date(bot, update, result):
                 ' to '.join(map(lambda x: x.__format__('%d/%m/%Y'), dates))))
 
 
-def price_handler(bot, update):
-    bot.send_message(
+def price_handler(update, context):
+    context.bot.send_message(
         chat_id=update.message.chat_id,
         text='Request received, fetching and parsing')
 
@@ -56,13 +56,13 @@ def price_handler(bot, update):
             )
         })
 
-    send_date(bot, update,
+    send_date(context.bot, update,
               CSSSelector('div.starter-template > p.lead b i')(
                   lxml.html.fromstring(response.text)))
 
     for block in CSSSelector('div[itemprop=priceComponent]')(
             lxml.html.fromstring(response.text))[:3]:
-        bot.send_message(
+        context.bot.send_message(
             chat_id=update.message.chat_id,
             text='Price of {} is RM {} per litre ({} from last week)'.format(
                 CSSSelector('div')(block)[1].text.strip(),
@@ -70,14 +70,14 @@ def price_handler(bot, update):
                 CSSSelector('div')(block)[3].text.replace(' ', '')))
 
 
-def price(bot, update):
+def price(update, context):
     logger.info(update.message.text.upper())
 
     if ((getattr(update, 'from_user', None)
          and 'price' in update.message.text.lower())
             or ('price' in update.message.text.lower()
                 and '@mypetrolbot' in update.message.text.lower())):
-        price_handler(bot, update)
+        price_handler(update, context)
 
 
 def main():
@@ -88,7 +88,12 @@ def main():
     dispatcher.add_handler(CommandHandler('price', price_handler, pass_args=False))
     dispatcher.add_handler(MessageHandler(Filters.text, price))
 
-    updater.start_webhook(listen='0.0.0.0', url_path=os.environ.get('URL_PATH', '/'))
+    updater.start_webhook(
+        listen='0.0.0.0',
+        webhook_url=
+            f"{os.environ.get('WEBHOOK_URL','coolsilon.com')}"
+            f"{os.environ.get('URL_PATH', '/')}",
+        url_path=os.environ.get('URL_PATH', '/'))
 
 class MockBot(object):
     def send_message(self, **kwargs):
