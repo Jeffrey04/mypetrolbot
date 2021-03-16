@@ -94,6 +94,7 @@ def main():
             f"{os.environ.get('WEBHOOK_URL','coolsilon.com')}"
             f"{os.environ.get('URL_PATH', '/')}",
         url_path=os.environ.get('URL_PATH', '/'))
+    updater.idle()
 
 class MockBot(object):
     def send_message(self, **kwargs):
