@@ -44,7 +44,7 @@ def send_date(bot, update, result):
 def price_handler(update, context):
     context.bot.send_message(
         chat_id=update.message.chat_id,
-        text='Request received, fetching and parsing')
+        text='Request received, fetching and parsing data from https://hargapetrol.my/')
 
     response = requests.get(
         'https://hargapetrol.my/',
